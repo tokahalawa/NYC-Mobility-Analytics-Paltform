@@ -8,4 +8,7 @@ SELECT
 FROM 'data/raw/fhvhv_tripdata_2025-01.parquet';
 SELECT COUNT (*) 
 FROM pg.bronze.trips_raw ;
+------------- adding lookup 
+ create or replace table pg.bronze.zones_raw as
+         select * from read_csv('data/raw/taxi_zone_lookup');
 

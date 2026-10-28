@@ -1,0 +1,118 @@
+CREATE TABLE IF NOT EXISTS gold.dim_time (
+    time_key     INT PRIMARY KEY,          -- مثال: 2025010114 = 1 يناير 2025 الساعة 14
+    hour_start   TIMESTAMP NOT NULL,
+    date         DATE      NOT NULL,
+    year         INT       NOT NULL,
+    month        INT       NOT NULL,
+    month_name   TEXT      NOT NULL,
+    day_of_week  INT       NOT NULL,       -- 1 = الاثنين ... 7 = الأحد
+    day_name     TEXT      NOT NULL,
+    hour         INT       NOT NULL,       -- 0 ... 23
+    is_weekend   BOOLEAN   NOT NULL
+);
+
+INSERT INTO gold.dim_time
+SELECT
+    to_char(ts, 'YYYYMMDDHH24')::int,
+    ts,
+    ts::date,
+    EXTRACT(YEAR  FROM ts)::int,
+    EXTRACT(MONTH FROM ts)::int,
+    trim(to_char(ts, 'Month')),
+    EXTRACT(ISODOW FROM ts)::int,
+    trim(to_char(ts, 'Day')),
+    EXTRACT(HOUR FROM ts)::int,
+    EXTRACT(ISODOW FROM ts) IN (6, 7)
+FROM generate_series('2024-12-01'::timestamp,
+                     '2026-12-31 23:00'::timestamp,
+                     interval '1 hour') AS ts
+ON CONFLICT (time_key) DO NOTHING;
+
+CREATE TABLE IF NOT EXISTS gold.dim_company (
+    company_key   INT PRIMARY KEY,
+    license_code  TEXT NOT NULL UNIQUE,
+    company_name  TEXT NOT NULL
+);
+
+INSERT INTO gold.dim_company VALUES
+    (0, 'UNKNOWN', 'Unknown'),
+    (1, 'HV0002',  'Juno'),
+    (2, 'HV0003',  'Uber'),
+    (3, 'HV0004',  'Via'),
+    (4, 'HV0005',  'Lyft')
+ON CONFLICT DO NOTHING;
+
+
+SELECT * FROM bronze.zones_raw LIMIT 5;
+
+
+CREATE TABLE IF NOT EXISTS gold.dim_zone (
+    zone_key      INT PRIMARY KEY,         -- نفس LocationID، و0 = Unknown
+    borough       TEXT NOT NULL,
+    zone_name     TEXT NOT NULL,
+    service_zone  TEXT
+);
+
+INSERT INTO gold.dim_zone VALUES (0, 'Unknown', 'Unknown', 'Unknown')
+ON CONFLICT DO NOTHING;
+
+INSERT INTO gold.dim_zone
+SELECT "LocationID"::int,
+       COALESCE("Borough", 'Unknown'),
+       COALESCE("Zone", 'Unknown'),
+       "service_zone"
+FROM bronze.zones_raw
+ON CONFLICT (zone_key) DO NOTHING;
+
+
+
+CREATE TABLE IF NOT EXISTS gold.fact_trips (
+    trip_key              BIGINT GENERATED ALWAYS AS IDENTITY PRIMARY KEY,
+
+    -- مفاتيح الـ Dimensions
+    time_key              INT NOT NULL REFERENCES gold.dim_time(time_key),
+    company_key           INT NOT NULL REFERENCES gold.dim_company(company_key),
+    pu_zone_key           INT NOT NULL REFERENCES gold.dim_zone(zone_key),
+    do_zone_key           INT NOT NULL REFERENCES gold.dim_zone(zone_key),
+
+    -- أكواد (degenerate dimensions)
+    dispatching_base_num  TEXT,
+    originating_base_num  TEXT,
+
+    -- الأوقات
+    request_datetime      TIMESTAMP,
+    on_scene_datetime     TIMESTAMP,
+    pickup_datetime       TIMESTAMP NOT NULL,
+    dropoff_datetime      TIMESTAMP NOT NULL,
+
+    -- Additive measures
+    trip_miles            NUMERIC(10,2),
+    trip_seconds          INT,
+    base_passenger_fare   NUMERIC(10,2),
+    tolls                 NUMERIC(10,2),
+    bcf                   NUMERIC(10,2),
+    sales_tax             NUMERIC(10,2),
+    congestion_surcharge  NUMERIC(10,2),
+    airport_fee           NUMERIC(10,2),
+    cbd_congestion_fee    NUMERIC(10,2),
+    tips                  NUMERIC(10,2),
+    driver_pay            NUMERIC(10,2),
+
+    -- محسوبة ومتخزّنة (additive)
+    wait_seconds          INT,             -- pickup - request، و NULL لو الوقت مقلوب
+    total_paid            NUMERIC(10,2),
+
+    -- Flags
+    shared_request        BOOLEAN,
+    shared_match          BOOLEAN,
+    access_a_ride         BOOLEAN,
+    wav_request           BOOLEAN,
+    wav_match             BOOLEAN,
+
+    -- تتبّع
+    is_bad_request_time   BOOLEAN NOT NULL DEFAULT FALSE,
+    source_file           TEXT NOT NULL
+);  SELECT 'dim_time'    AS tbl, COUNT(*) FROM gold.dim_time
+UNION ALL SELECT 'dim_company', COUNT(*) FROM gold.dim_company
+UNION ALL SELECT 'dim_zone',    COUNT(*) FROM gold.dim_zone
+UNION ALL SELECT 'fact_trips',  COUNT(*) FROM gold.fact_trips;
