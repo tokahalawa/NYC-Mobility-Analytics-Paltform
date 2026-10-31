@@ -9,8 +9,8 @@ services:
     ports:
       - "5432:5432"
     volumes:
-      - pgdata:/var/lib/postgresql/data
-      - ./sql/init:/docker-entrypoint-initdb.d
+      - pgdata:/var/lib/postgresql/data ----- safeplace for data to not be erased-----
+      - ./sql/init:/docker-entrypoint-initdb.d ------ folder mapping ----
 
   airflow:
     image: apache/airflow:2.10.5
