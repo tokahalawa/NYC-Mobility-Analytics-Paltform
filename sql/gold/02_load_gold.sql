@@ -1,5 +1,5 @@
 -- safe rerun -------------
-DELETE FROM gold.fact_trips WHERE source_file = 'fhvhv_tripdata_2025-01.parquet';
+DELETE FROM gold.fact_trips WHERE source_file = '{{ params.source_file }}';
 
 INSERT INTO gold.fact_trips (
   time_key, company_key, pu_zone_key, do_zone_key,
@@ -40,13 +40,13 @@ SELECT
  c.source_file
 FROM silver.trips_clean c
 JOIN gold.dim_company dc ON dc.license_code = c.hvfhs_license_num
-WHERE c.source_file = 'fhvhv_tripdata_2025-01.parquet';
+WHERE c.source_file = '{{ params.source_file }}';
 
 --------------------- Verifying --------------------
 
 SELECT
- (SELECT COUNT(*) FROM silver.trips_clean WHERE source_file='fhvhv_tripdata_2025-01.parquet') AS silver_rows,
- (SELECT COUNT(*) FROM gold.fact_trips    WHERE source_file='fhvhv_tripdata_2025-01.parquet') AS fact_rows;
+ (SELECT COUNT(*) FROM silver.trips_clean WHERE source_file='{{ params.source_file }}') AS silver_rows,
+ (SELECT COUNT(*) FROM gold.fact_trips    WHERE source_file='{{ params.source_file }}') AS fact_rows;
 
 
 --------------------------- End to end test-----------------

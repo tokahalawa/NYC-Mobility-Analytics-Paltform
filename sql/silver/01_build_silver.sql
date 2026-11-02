@@ -94,7 +94,7 @@ CASE
                                                                    THEN 'R12'
 END AS reject_rule_id 
 FROM bronze.trips_raw t
-WHERE t.source_file = 'fhvhv_tripdata_2025-01.parquet';
+WHERE t.source_file = '{{ params.source_file }}';
  -------------------------------------------------------------------------------------------------------
 -------------- Safe reruns : remove old rows -----------------------
  DELETE FROM silver.trips_quarantine WHERE source_file IN (SELECT DISTINCT source_file FROM staged);
