@@ -1,3 +1,11 @@
+\timing on
+
+-- 0) safety check: does bronze have this file?
+SELECT EXISTS (SELECT 1 FROM :src_table WHERE source_file = :'source_file') AS ok \gset
+\if :ok
+\else
+  SELECT 1/0 AS no_bronze_rows_for_this_file;
+\endif
 --------------------- Quality Rules ---------------
 
 ----- creating empty table to add rules -----
@@ -22,8 +30,7 @@ INSERT INTO silver.quality_rules VALUES
  ('R09', 'hvfhs_license_num',    'License number is empty',                      'QUARANTINE'),
  ('R10', 'request_datetime',     'Request time is empty',                        'QUARANTINE'),
  ('R11', 'request_datetime',     'Request time is after pickup time',            'QUARANTINE'),
- ('R12', 'pickup_datetime','      Pickup time is outside the file''s month',      'QUARANTINE')
-ON CONFLICT (rule_id) DO NOTHING;
+ ('R12','pickup_datetime','Pickup is outside the file''s month','QUARANTINE')
 ------------------ Silver  Creating tables -----------------------
 ---------------- Quarntine --------
 CREATE TABLE IF NOT EXISTS silver.trips_quarantine AS 
@@ -93,12 +100,12 @@ CASE
       OR pickup_datetime >= to_date(substring(source_file from '[0-9]{4}-[0-9]{2}'), 'YYYY-MM') + INTERVAL '1 month'
                                                                    THEN 'R12'
 END AS reject_rule_id 
-FROM bronze.trips_dev t
-WHERE t.source_file = 'fhvhv_tripdata_2025-01.parquet';
+FROM :src_table t
+WHERE t.source_file = :'source_file';
  -------------------------------------------------------------------------------------------------------
 -------------- Safe reruns : remove old rows -----------------------
- DELETE FROM silver.trips_quarantine WHERE source_file = 'fhvhv_tripdata_2025-01.parquet';
-DELETE FROM silver.trips_clean      WHERE source_file = 'fhvhv_tripdata_2025-01.parquet';
+ DELETE FROM silver.trips_quarantine WHERE source_file = :'source_file';
+DELETE FROM silver.trips_clean      WHERE source_file = :'source_file';
 
 ---------------------- Filling Quarntine -------------------
 INSERT INTO silver.trips_quarantine
@@ -159,12 +166,19 @@ SELECT
 FROM prep;
 
 ---------------------- reconciliation: source = clean + quarantine ----------------------
+-- 7) reconciliation (fails the run if it doesn't match)
 SELECT
   (SELECT COUNT(*) FROM staged) AS source_rows,
-  (SELECT COUNT(*) FROM silver.trips_clean
-    WHERE source_file = 'fhvhv_tripdata_2025-01.parquet') AS clean_rows,
-  (SELECT COUNT(*) FROM silver.trips_quarantine
-    WHERE source_file = 'fhvhv_tripdata_2025-01.parquet') AS quarantine_rows;
+  (SELECT COUNT(*) FROM silver.trips_clean WHERE source_file = :'source_file') AS clean_rows,
+  (SELECT COUNT(*) FROM silver.trips_quarantine WHERE source_file = :'source_file') AS quarantine_rows;
+
+SELECT ((SELECT COUNT(*) FROM silver.trips_clean WHERE source_file = :'source_file')
+      + (SELECT COUNT(*) FROM silver.trips_quarantine WHERE source_file = :'source_file')
+      = (SELECT COUNT(*) FROM staged)) AS reconciled \gset
+\if :reconciled
+\else
+  SELECT 1/0 AS silver_reconciliation_failed;
+\endif
 -------------------------------------------------------------------------------------------------------------
 ------------------ Quality report -------------------------
 SELECT
@@ -174,6 +188,6 @@ COUNT(*) AS rows_quarantined
 FROM silver.trips_quarantine q
 JOIN silver.quality_rules r 
 ON r.rule_id = q.reject_rule_id
-GROUP BY 1, 2 
-ORDER BY 3 DESC;
+WHERE q.source_file = :'source_file'
+GROUP BY 1,2 ORDER BY 3 DESC;
 

@@ -13,13 +13,12 @@ CREATE TABLE IF NOT EXISTS gold.dim_time (
 );
 
 INSERT INTO gold.dim_time
-SELECT to_char(ts,'YYYYMMDDHH24')::int, ts, ts::date,
-       EXTRACT(YEAR FROM ts)::int, EXTRACT(MONTH FROM ts)::int, trim(to_char(ts,'Month')),
-       EXTRACT(ISODOW FROM ts)::int, trim(to_char(ts,'Day')),
+SELECT to_char(ts,'YYYYMMDDHH24')::int, ts, ts::date, 
+       EXTRACT(YEAR FROM ts)::int, EXTRACT(MONTH FROM ts)::int, trim(to_char(ts,'Month')), 
+       EXTRACT(ISODOW FROM ts)::int, trim(to_char(ts,'Day')), 
        EXTRACT(HOUR FROM ts)::int, EXTRACT(ISODOW FROM ts) IN (6,7)
 FROM generate_series('2024-12-01'::timestamp, '2026-12-31 23:00'::timestamp, interval '1 hour') ts
 ON CONFLICT (time_key) DO NOTHING;
-
 
 -- ===== dim_company =====
 CREATE TABLE IF NOT EXISTS gold.dim_company (
@@ -27,8 +26,13 @@ CREATE TABLE IF NOT EXISTS gold.dim_company (
   license_code TEXT NOT NULL UNIQUE,
   company_name TEXT NOT NULL
 );
+
 INSERT INTO gold.dim_company VALUES
- (0,'UNKNOWN','Unknown'),(1,'HV0002','Juno'),(2,'HV0003','Uber'),(3,'HV0004','Via'),(4,'HV0005','Lyft')
+ (0,'UNKNOWN','Unknown'),
+ (1,'HV0002','Juno'),
+ (2,'HV0003','Uber'),
+ (3,'HV0004','Via'),
+ (4,'HV0005','Lyft')
 ON CONFLICT DO NOTHING;
 
 -- ===== dim_zone =====
@@ -38,12 +42,13 @@ CREATE TABLE IF NOT EXISTS gold.dim_zone (
   zone_name    TEXT NOT NULL,
   service_zone TEXT
 );
+
 INSERT INTO gold.dim_zone VALUES (0,'Unknown','Unknown','Unknown') ON CONFLICT DO NOTHING;
+
 INSERT INTO gold.dim_zone
 SELECT "LocationID"::int, COALESCE("Borough",'Unknown'), COALESCE("Zone",'Unknown'), "service_zone"
 FROM bronze.zones_raw
 ON CONFLICT (zone_key) DO NOTHING;
-
 
 -- ===== fact_trips =====
 CREATE TABLE IF NOT EXISTS gold.fact_trips (
@@ -68,8 +73,11 @@ CREATE TABLE IF NOT EXISTS gold.fact_trips (
   driver_pay            NUMERIC(10,2) NOT NULL,
   wait_seconds          INT           NOT NULL,
   total_paid            NUMERIC(10,2) NOT NULL,
-  shared_request BOOLEAN, shared_match BOOLEAN, access_a_ride BOOLEAN,
-  wav_request BOOLEAN, wav_match BOOLEAN,
+  shared_request        BOOLEAN,
+  shared_match          BOOLEAN,
+  access_a_ride         BOOLEAN,
+  wav_request           BOOLEAN,
+  wav_match             BOOLEAN,
   is_outlier            BOOLEAN NOT NULL,
   is_driver_pay_suspect BOOLEAN NOT NULL,
   source_file           TEXT NOT NULL
