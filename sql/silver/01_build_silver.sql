@@ -89,22 +89,22 @@ CASE
     WHEN hvfhs_license_num IS NULL                                 THEN 'R09'
     WHEN request_datetime IS NULL                                  THEN 'R10'
     WHEN request_datetime > pickup_datetime                        THEN 'R11'
-    WHEN pickup_datetime <  to_date(substring(source_file from '\d{4}-\d{2}'), 'YYYY-MM')
-      OR pickup_datetime >= to_date(substring(source_file from '\d{4}-\d{2}'), 'YYYY-MM') + INTERVAL '1 month'
+    WHEN pickup_datetime <  to_date(substring(source_file from '[0-9]{4}-[0-9]{2}'), 'YYYY-MM')
+      OR pickup_datetime >= to_date(substring(source_file from '[0-9]{4}-[0-9]{2}'), 'YYYY-MM') + INTERVAL '1 month'
                                                                    THEN 'R12'
 END AS reject_rule_id 
-FROM bronze.trips_raw t
-WHERE t.source_file = '{{ params.source_file }}';
+FROM bronze.trips_dev t
+WHERE t.source_file = 'fhvhv_tripdata_2025-01.parquet';
  -------------------------------------------------------------------------------------------------------
 -------------- Safe reruns : remove old rows -----------------------
- DELETE FROM silver.trips_quarantine WHERE source_file IN (SELECT DISTINCT source_file FROM staged);
-DELETE FROM silver.trips_clean      WHERE source_file IN (SELECT DISTINCT source_file FROM staged);
+ DELETE FROM silver.trips_quarantine WHERE source_file = 'fhvhv_tripdata_2025-01.parquet';
+DELETE FROM silver.trips_clean      WHERE source_file = 'fhvhv_tripdata_2025-01.parquet';
 
 ---------------------- Filling Quarntine -------------------
 INSERT INTO silver.trips_quarantine
 SELECT 
 s.*,
- now() as quarntine_time 
+ now() as quarantine_time 
 FROM staged s 
 WHERE s.reject_rule_id IS NOT NULL;
 ---------------------------------------------------------------------
@@ -162,9 +162,9 @@ FROM prep;
 SELECT
   (SELECT COUNT(*) FROM staged) AS source_rows,
   (SELECT COUNT(*) FROM silver.trips_clean
-    WHERE source_file IN (SELECT DISTINCT source_file FROM staged)) AS clean_rows,
+    WHERE source_file = 'fhvhv_tripdata_2025-01.parquet') AS clean_rows,
   (SELECT COUNT(*) FROM silver.trips_quarantine
-    WHERE source_file IN (SELECT DISTINCT source_file FROM staged)) AS quarantine_rows;
+    WHERE source_file = 'fhvhv_tripdata_2025-01.parquet') AS quarantine_rows;
 -------------------------------------------------------------------------------------------------------------
 ------------------ Quality report -------------------------
 SELECT

@@ -1,5 +1,5 @@
 -- safe rerun -------------
-DELETE FROM gold.fact_trips WHERE source_file = '{{ params.source_file }}';
+DELETE FROM gold.fact_trips WHERE source_file = 'fhvhv_tripdata_2025-01.parquet';
 
 INSERT INTO gold.fact_trips (
   time_key, company_key, pu_zone_key, do_zone_key,
@@ -40,7 +40,7 @@ SELECT
  c.source_file
 FROM silver.trips_clean c
 JOIN gold.dim_company dc ON dc.license_code = c.hvfhs_license_num
-WHERE c.source_file = '{{ params.source_file }}';
+WHERE c.source_file = 'fhvhv_tripdata_2025-01.parquet';
 
 --------------------- Verifying --------------------
 
