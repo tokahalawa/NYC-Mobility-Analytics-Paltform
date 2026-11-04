@@ -1,20 +1,11 @@
-\timing on
-
 -- =========================================================================
--- DuckDB Silver Transformation (Modified from PSQL version)
+-- DuckDB Silver Transformation (Reading directly from Parquet)
 -- =========================================================================
 
 -- 0) Connect to PostgreSQL
 INSTALL postgres;
 LOAD postgres;
 ATTACH IF NOT EXISTS 'host=localhost port=5432 dbname=nyc_dwh user=admin password=admin123' AS pg (TYPE postgres);
-
--- 0.1) Safety check: does bronze have this file? (DuckDB equivalent of \gset)
-CREATE TEMP TABLE check_bronze AS 
-SELECT EXISTS (SELECT 1 FROM pg.bronze.trips_raw WHERE source_file = :source_file) AS ok;
-
--- If no rows, this will throw a division by zero error and stop the script.
-SELECT CASE WHEN ok THEN 1 ELSE 1/0 END AS safety_check FROM check_bronze;
 
 -- 1) rules
 CREATE TABLE IF NOT EXISTS pg.silver.quality_rules (
@@ -56,10 +47,10 @@ CREATE TABLE IF NOT EXISTS pg.silver.trips_clean (
   is_outlier BOOLEAN NOT NULL, is_driver_pay_suspect BOOLEAN NOT NULL,
   source_file TEXT NOT NULL);
 
--- 3) stage: decide the reject rule ONCE per row (Run in DuckDB memory for speed)
+-- 3) stage: Read directly from Parquet
 DROP TABLE IF EXISTS staged;
 CREATE TEMP TABLE staged AS
-SELECT t.*,
+SELECT t.*, getvariable('source_file') AS source_file,
 CASE
   WHEN pickup_datetime IS NULL THEN 'R01'
   WHEN dropoff_datetime IS NULL THEN 'R02'
@@ -73,16 +64,23 @@ CASE
   WHEN hvfhs_license_num IS NULL THEN 'R09'
   WHEN request_datetime IS NULL THEN 'R10'
   WHEN request_datetime > pickup_datetime THEN 'R11'
-  WHEN pickup_datetime <  to_date(substring(source_file from '[0-9]{4}-[0-9]{2}'),'YYYY-MM')
-    OR pickup_datetime >= to_date(substring(source_file from '[0-9]{4}-[0-9]{2}'),'YYYY-MM') + INTERVAL '1 month'
+  -- R12 FIXED FOR DUCKDB:
+  WHEN pickup_datetime <  CAST(regexp_extract(getvariable('source_file'), '[0-9]{4}-[0-9]{2}') || '-01' AS DATE)
+    OR pickup_datetime >= CAST(regexp_extract(getvariable('source_file'), '[0-9]{4}-[0-9]{2}') || '-01' AS DATE) + INTERVAL '1 month'
     THEN 'R12'
 END AS reject_rule_id
-FROM pg.bronze.trips_raw t
-WHERE t.source_file = :source_file;
+FROM read_parquet('data/raw/' || getvariable('source_file')) t;
+
+
 
 -- 4) safe rerun (Delete from PG)
-DELETE FROM pg.silver.trips_quarantine WHERE source_file = :source_file;
-DELETE FROM pg.silver.trips_clean      WHERE source_file = :source_file;
+DELETE FROM pg.silver.trips_quarantine WHERE source_file = getvariable('source_file');
+DELETE FROM pg.silver.trips_clean      WHERE source_file = getvariable('source_file');
+
+-- =========================================================
+-- =========================================================
+ALTER TABLE pg.silver.trips_quarantine SET UNLOGGED;
+ALTER TABLE pg.silver.trips_clean SET UNLOGGED;
 
 -- 5) rejected rows (Insert to PG)
 INSERT INTO pg.silver.trips_quarantine
@@ -130,23 +128,29 @@ SELECT hvfhs_license_num, dispatching_base_num, originating_base_num,
   source_file
 FROM prep;
 
--- 7) reconciliation (Query PG to compare)
+-- =========================================================
+-- for data to be safe
+-- =========================================================
+ALTER TABLE pg.silver.trips_quarantine SET LOGGED;
+ALTER TABLE pg.silver.trips_clean SET LOGGED;
+
+
+-- 7) reconciliation
 SELECT
   (SELECT COUNT(*) FROM staged) AS source_rows,
-  (SELECT COUNT(*) FROM pg.silver.trips_clean WHERE source_file = :source_file) AS clean_rows,
-  (SELECT COUNT(*) FROM pg.silver.trips_quarantine WHERE source_file = :source_file) AS quarantine_rows;
+  (SELECT COUNT(*) FROM pg.silver.trips_clean WHERE source_file = getvariable('source_file')) AS clean_rows,
+  (SELECT COUNT(*) FROM pg.silver.trips_quarantine WHERE source_file = getvariable('source_file')) AS quarantine_rows;
 
--- Check if totals match (DuckDB alternative to \if)
 SELECT CASE 
-  WHEN (SELECT COUNT(*) FROM pg.silver.trips_clean WHERE source_file = :source_file) + 
-       (SELECT COUNT(*) FROM pg.silver.trips_quarantine WHERE source_file = :source_file) 
+  WHEN (SELECT COUNT(*) FROM pg.silver.trips_clean WHERE source_file = getvariable('source_file')) + 
+       (SELECT COUNT(*) FROM pg.silver.trips_quarantine WHERE source_file = getvariable('source_file')) 
        = (SELECT COUNT(*) FROM staged) 
   THEN 'Reconciliation Passed' 
-  ELSE 1/0 -- This forces a failure
+  ELSE 1/0 
 END AS reconciliation_check;
 
 -- 8) quality report
 SELECT q.reject_rule_id, r.description, COUNT(*) AS rows_quarantined
 FROM pg.silver.trips_quarantine q JOIN pg.silver.quality_rules r ON r.rule_id = q.reject_rule_id
-WHERE q.source_file = :source_file
+WHERE q.source_file = getvariable('source_file')
 GROUP BY 1,2 ORDER BY 3 DESC;

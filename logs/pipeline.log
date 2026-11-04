@@ -26,3 +26,15 @@
 [Tue 11/03/2026 21:09:05.92] 4_validate attempt 1 
 [Tue 11/03/2026 21:22:48.72] 4_validate OK 
 [Tue 11/03/2026 21:22:49.03] PIPELINE OK fhvhv_tripdata_2025-01.parquet 
+[Wed 11/04/2026 19:00:02.38] START fhvhv_tripdata_2025-02.parquet 
+[Wed 11/04/2026 19:00:09.54] 1_silver OK 
+[Wed 11/04/2026 19:03:32.98] 2_gold OK 
+[Wed 11/04/2026 19:03:34.97] FAILED at Validation 
+[Wed 11/04/2026 19:05:24.02] START fhvhv_tripdata_2025-02.parquet 
+[Wed 11/04/2026 19:05:25.94] FAILED at Silver 
+[Wed 11/04/2026 19:07:53.25] START fhvhv_tripdata_2025-02.parquet 
+[Wed 11/04/2026 19:08:02.51] FAILED at Silver 
+[Wed 11/04/2026 19:09:47.96] START fhvhv_tripdata_2025-02.parquet 
+[Wed 11/04/2026 19:19:58.22] FAILED at Silver 
+[Wed 11/04/2026 19:30:57.11] START fhvhv_tripdata_2025-02.parquet 
+[Wed 11/04/2026 19:57:44.33] 1_silver OK 
