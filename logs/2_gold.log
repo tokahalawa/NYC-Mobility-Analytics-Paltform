@@ -1,1 +1,39 @@
-^C
+Timing is on.
+NOTICE:  relation "dim_time" already exists, skipping
+CREATE TABLE
+Time: 2.499 ms
+INSERT 0 0
+Time: 102.180 ms
+NOTICE:  relation "dim_company" already exists, skipping
+CREATE TABLE
+Time: 0.357 ms
+INSERT 0 0
+Time: 1.469 ms
+NOTICE:  relation "dim_zone" already exists, skipping
+CREATE TABLE
+Time: 0.211 ms
+INSERT 0 0
+Time: 1.193 ms
+CREATE TABLE
+Time: 0.271 ms
+NOTICE:  relation "zones_raw" already exists, skipping
+TRUNCATE TABLE
+Time: 17.091 ms
+COPY 265
+Time: 14.521 ms
+INSERT 0 0
+Time: 3.020 ms
+CREATE TABLE
+Time: 0.412 ms
+NOTICE:  relation "fact_trips" already exists, skipping
+DELETE 0
+Time: 26477.015 ms (00:26.477)
+INSERT 0 19183488
+Time: 159010.015 ms (02:39.010)
+ silver_rows | fact_rows 
+-------------+-----------
+    19183488 |  19183488
+(1 row)
+
+Time: 43855.909 ms (00:43.856)
+Time: 33235.644 ms (00:33.236)

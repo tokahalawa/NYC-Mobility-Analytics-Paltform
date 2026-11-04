@@ -1,6 +1,5 @@
 \echo === rows per layer
-SELECT 'bronze' AS layer, COUNT(*) FROM :src_table WHERE source_file = :'source_file'
-UNION ALL SELECT 'silver_clean', COUNT(*) FROM silver.trips_clean WHERE source_file = :'source_file'
+SELECT 'silver_clean' AS layer, COUNT(*) FROM silver.trips_clean WHERE source_file = :'source_file'
 UNION ALL SELECT 'silver_quarantine', COUNT(*) FROM silver.trips_quarantine WHERE source_file = :'source_file'
 UNION ALL SELECT 'gold_fact', COUNT(*) FROM gold.fact_trips WHERE source_file = :'source_file';
 

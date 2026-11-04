@@ -20,7 +20,8 @@ echo [%date% %time%] START %FILE% >> logs\pipeline.log
 :: ==========================================
 echo.
 echo [1/4] Transforming Data (Silver) in DuckDB...
-"C:\Users\Toka\AppData\Local\duckdb\cli\2.0.0\duckdb.exe" -c "SET VARIABLE source_file = '%FILE%';" -c ".read sql/silver/02_build_silver_duckdb.sql" > logs\1_silver.log 2>&1
+
+data\duckdb.exe -c "SET VARIABLE source_file = '%FILE%';" -c ".read sql/silver/02_build_silver_duckdb.sql" > logs\1_silver.log 2>&1
 type logs\1_silver.log
 
 :: Check if DuckDB failed (using findstr to check for 'Error')

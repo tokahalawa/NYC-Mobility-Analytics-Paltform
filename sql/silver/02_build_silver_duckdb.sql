@@ -27,8 +27,8 @@ ON CONFLICT (rule_id) DO NOTHING;
 
 -- 2) tables (created once) in PG
 CREATE TABLE IF NOT EXISTS pg.silver.trips_quarantine AS
-SELECT *, ''::VARCHAR AS reject_rule_id, now() AS quarantine_time
-FROM pg.bronze.trips_raw WHERE false;
+SELECT *, ''::VARCHAR AS reject_rule_id, getvariable('source_file') AS source_file, now() AS quarantine_time
+FROM read_parquet('data/raw/' || getvariable('source_file')) WHERE false;
 
 CREATE TABLE IF NOT EXISTS pg.silver.trips_clean (
   hvfhs_license_num TEXT NOT NULL, dispatching_base_num TEXT, originating_base_num TEXT,
@@ -71,16 +71,10 @@ CASE
 END AS reject_rule_id
 FROM read_parquet('data/raw/' || getvariable('source_file')) t;
 
-
-
 -- 4) safe rerun (Delete from PG)
 DELETE FROM pg.silver.trips_quarantine WHERE source_file = getvariable('source_file');
 DELETE FROM pg.silver.trips_clean      WHERE source_file = getvariable('source_file');
 
--- =========================================================
--- =========================================================
-ALTER TABLE pg.silver.trips_quarantine SET UNLOGGED;
-ALTER TABLE pg.silver.trips_clean SET UNLOGGED;
 
 -- 5) rejected rows (Insert to PG)
 INSERT INTO pg.silver.trips_quarantine
@@ -95,6 +89,7 @@ WITH prep AS (
     upper(trim(s.dispatching_base_num)) AS dispatching_base_num,
     upper(trim(s.originating_base_num)) AS originating_base_num,
     s.request_datetime, s.on_scene_datetime, s.pickup_datetime, s.dropoff_datetime,
+    -- تعديل: قراءة المناطق مباشرة من الـ CSV عشان نتجنب مشكلة الجدول المفقود
     COALESCE(pu."LocationID",0)::INTEGER AS pu_location_id,
     COALESCE(dz."LocationID",0)::INTEGER AS do_location_id,
     s.trip_miles::NUMERIC(8,2) AS trip_miles, s.trip_time::INTEGER AS trip_seconds,
@@ -112,8 +107,9 @@ WITH prep AS (
     CASE upper(trim(s.wav_match_flag))      WHEN 'Y' THEN TRUE WHEN 'N' THEN FALSE END AS wav_match,
     s.source_file
   FROM staged s
-  LEFT JOIN pg.bronze.zones_raw pu ON pu."LocationID" = s."PULocationID"
-  LEFT JOIN pg.bronze.zones_raw dz ON dz."LocationID" = s."DOLocationID"
+  
+  LEFT JOIN read_csv_auto('data/raw/taxi_zone_lookup.csv') pu ON pu."LocationID" = s."PULocationID"
+  LEFT JOIN read_csv_auto('data/raw/taxi_zone_lookup.csv') dz ON dz."LocationID" = s."DOLocationID"
   WHERE s.reject_rule_id IS NULL)
 SELECT hvfhs_license_num, dispatching_base_num, originating_base_num,
   request_datetime, on_scene_datetime, pickup_datetime, dropoff_datetime,
@@ -128,11 +124,7 @@ SELECT hvfhs_license_num, dispatching_base_num, originating_base_num,
   source_file
 FROM prep;
 
--- =========================================================
--- for data to be safe
--- =========================================================
-ALTER TABLE pg.silver.trips_quarantine SET LOGGED;
-ALTER TABLE pg.silver.trips_clean SET LOGGED;
+
 
 
 -- 7) reconciliation
@@ -153,4 +145,4 @@ END AS reconciliation_check;
 SELECT q.reject_rule_id, r.description, COUNT(*) AS rows_quarantined
 FROM pg.silver.trips_quarantine q JOIN pg.silver.quality_rules r ON r.rule_id = q.reject_rule_id
 WHERE q.source_file = getvariable('source_file')
-GROUP BY 1,2 ORDER BY 3 DESC;
+GROUP BY 1,2 ORDER BY 3 DESC; 

@@ -1,0 +1,196 @@
+Timing is on.
+DROP INDEX
+Time: 1067.307 ms (00:01.067)
+DROP INDEX
+Time: 37.596 ms
+ANALYZE
+Time: 1140.373 ms (00:01.140)
+=== 1) BEFORE index: one day of trips by borough
+                                                                                      QUERY PLAN                                                                                      
+--------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ GroupAggregate  (cost=13461197.30..13467063.27 rows=8 width=16) (actual time=46997.279..46999.604 rows=6 loops=1)
+   Group Key: z.borough
+   Buffers: shared hit=221621 read=8099332
+   ->  Sort  (cost=13461197.30..13463152.60 rows=782119 width=8) (actual time=46996.939..46998.043 rows=21970 loops=1)
+         Sort Key: z.borough
+         Sort Method: quicksort  Memory: 1228kB
+         Buffers: shared hit=221621 read=8099332
+         ->  Hash Join  (cost=6963792.85..13373943.47 rows=782119 width=8) (actual time=18970.180..46993.698 rows=21970 loops=1)
+               Hash Cond: (f.pu_zone_key = z.zone_key)
+               Buffers: shared hit=221621 read=8099332
+               ->  Hash Semi Join  (cost=6963783.87..13371848.71 rows=782119 width=4) (actual time=18859.101..46880.927 rows=21970 loops=1)
+                     Hash Cond: (f.time_key = fact_trips.time_key)
+                     Buffers: shared hit=221618 read=8099332
+                     ->  Seq Scan on fact_trips f  (cost=0.00..5933840.60 rows=177342160 width=8) (actual time=0.017..22574.589 rows=177346044 loops=1)
+                           Buffers: shared hit=110801 read=4049618
+                     ->  Hash  (cost=6963783.57..6963783.57 rows=24 width=4) (actual time=16079.044..16079.186 rows=24 loops=1)
+                           Buckets: 1024  Batches: 1  Memory Usage: 9kB
+                           Buffers: shared hit=110817 read=4049714
+                           ->  Limit  (cost=6963780.77..6963783.57 rows=24 width=4) (actual time=16078.961..16079.108 rows=24 loops=1)
+                                 Buffers: shared hit=110817 read=4049714
+                                 ->  Gather Merge  (cost=6963780.77..24206583.57 rows=147785134 width=4) (actual time=16078.945..16079.089 rows=24 loops=1)
+                                       Workers Planned: 2
+                                       Workers Launched: 2
+                                       Buffers: shared hit=110817 read=4049714
+                                       ->  Sort  (cost=6962780.75..7147512.16 rows=73892567 width=4) (actual time=16064.403..16064.406 rows=24 loops=3)
+                                             Sort Key: fact_trips.time_key DESC
+                                             Sort Method: top-N heapsort  Memory: 25kB
+                                             Buffers: shared hit=110817 read=4049714
+                                             Worker 0:  Sort Method: top-N heapsort  Memory: 25kB
+                                             Worker 1:  Sort Method: top-N heapsort  Memory: 25kB
+                                             ->  Parallel Seq Scan on fact_trips  (cost=0.00..4899344.67 rows=73892567 width=4) (actual time=29.935..13213.301 rows=59115348 loops=3)
+                                                   Buffers: shared hit=110705 read=4049714
+               ->  Hash  (cost=5.66..5.66 rows=266 width=12) (actual time=111.060..111.061 rows=266 loops=1)
+                     Buckets: 1024  Batches: 1  Memory Usage: 21kB
+                     Buffers: shared hit=3
+                     ->  Seq Scan on dim_zone z  (cost=0.00..5.66 rows=266 width=12) (actual time=110.942..110.984 rows=266 loops=1)
+                           Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=79
+ Planning Time: 0.605 ms
+ JIT:
+   Functions: 27
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 0.594 ms, Inlining 124.486 ms, Optimization 39.380 ms, Emission 36.650 ms, Total 201.111 ms
+ Execution Time: 47028.871 ms
+(45 rows)
+
+Time: 47031.561 ms (00:47.032)
+CREATE INDEX
+Time: 54322.384 ms (00:54.322)
+CREATE INDEX
+Time: 76012.122 ms (01:16.012)
+ANALYZE
+Time: 1871.313 ms (00:01.871)
+=== 1) AFTER index (same query)
+                                                                                     QUERY PLAN                                                                                     
+------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ HashAggregate  (cost=345387.17..345387.25 rows=8 width=16) (actual time=22.503..22.507 rows=6 loops=1)
+   Group Key: z.borough
+   Batches: 1  Memory Usage: 24kB
+   Buffers: shared hit=532 read=20
+   ->  Hash Join  (cost=10.97..341532.31 rows=770972 width=8) (actual time=12.870..20.158 rows=21970 loops=1)
+         Hash Cond: (f.pu_zone_key = z.zone_key)
+         Buffers: shared hit=532 read=20
+         ->  Nested Loop  (cost=1.99..339467.28 rows=770972 width=4) (actual time=12.793..18.059 rows=21970 loops=1)
+               Buffers: shared hit=529 read=20
+               ->  HashAggregate  (cost=1.42..1.66 rows=24 width=4) (actual time=11.861..11.863 rows=1 loops=1)
+                     Group Key: fact_trips.time_key
+                     Batches: 1  Memory Usage: 24kB
+                     Buffers: shared hit=6
+                     ->  Limit  (cost=0.57..1.36 rows=24 width=4) (actual time=11.838..11.846 rows=24 loops=1)
+                           Buffers: shared hit=6
+                           ->  Index Only Scan Backward using ix_fact_time on fact_trips  (cost=0.57..5815166.39 rows=177341056 width=4) (actual time=0.021..0.027 rows=24 loops=1)
+                                 Heap Fetches: 24
+                                 Buffers: shared hit=6
+               ->  Index Scan using ix_fact_time on fact_trips f  (cost=0.57..13846.75 rows=29765 width=8) (actual time=0.919..4.716 rows=21970 loops=1)
+                     Index Cond: (time_key = fact_trips.time_key)
+                     Buffers: shared hit=523 read=20
+         ->  Hash  (cost=5.66..5.66 rows=266 width=12) (actual time=0.056..0.057 rows=266 loops=1)
+               Buckets: 1024  Batches: 1  Memory Usage: 21kB
+               Buffers: shared hit=3
+               ->  Seq Scan on dim_zone z  (cost=0.00..5.66 rows=266 width=12) (actual time=0.010..0.029 rows=266 loops=1)
+                     Buffers: shared hit=3
+ Planning:
+   Buffers: shared hit=40 read=16
+ Planning Time: 4.968 ms
+ JIT:
+   Functions: 22
+   Options: Inlining false, Optimization false, Expressions true, Deforming true
+   Timing: Generation 0.812 ms, Inlining 0.000 ms, Optimization 0.525 ms, Emission 11.318 ms, Total 12.655 ms
+ Execution Time: 23.924 ms
+(34 rows)
+
+Time: 29.560 ms
+CREATE TABLE
+Time: 1.066 ms
+NOTICE:  relation "agg_hourly_zone" already exists, skipping
+TRUNCATE TABLE
+Time: 44.916 ms
+INSERT 0 3231034
+Time: 235781.694 ms (03:55.782)
+ANALYZE
+Time: 194.220 ms
+=== 2) BEFORE aggregate: demand by hour from the fact
+                                                                                          QUERY PLAN                                                                                          
+----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=2792073.43..2792079.51 rows=24 width=12) (actual time=16860.583..16885.699 rows=24 loops=1)
+   Group Key: d.hour
+   Buffers: shared hit=10752 read=149844 written=53391
+   ->  Gather Merge  (cost=2792073.43..2792079.03 rows=48 width=12) (actual time=16860.547..16885.655 rows=72 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=10752 read=149844 written=53391
+         ->  Sort  (cost=2791073.40..2791073.46 rows=24 width=12) (actual time=16792.455..16792.465 rows=24 loops=3)
+               Sort Key: d.hour
+               Sort Method: quicksort  Memory: 25kB
+               Buffers: shared hit=10752 read=149844 written=53391
+               Worker 0:  Sort Method: quicksort  Memory: 25kB
+               Worker 1:  Sort Method: quicksort  Memory: 25kB
+               ->  Partial HashAggregate  (cost=2791072.61..2791072.85 rows=24 width=12) (actual time=16792.385..16792.397 rows=24 loops=3)
+                     Group Key: d.hour
+                     Batches: 1  Memory Usage: 24kB
+                     Buffers: shared hit=10738 read=149844 written=53391
+                     Worker 0:  Batches: 1  Memory Usage: 24kB
+                     Worker 1:  Batches: 1  Memory Usage: 24kB
+                     ->  Hash Join  (cost=611.51..2421639.35 rows=73886653 width=4) (actual time=95.005..12028.164 rows=59115348 loops=3)
+                           Hash Cond: (f.time_key = d.time_key)
+                           Buffers: shared hit=10738 read=149844 written=53391
+                           ->  Parallel Index Only Scan using ix_fact_time on fact_trips f  (cost=0.57..2227030.94 rows=73886653 width=4) (actual time=0.157..6053.685 rows=59115348 loops=3)
+                                 Heap Fetches: 0
+                                 Buffers: shared hit=10338 read=149644 written=53391
+                           ->  Hash  (cost=382.64..382.64 rows=18264 width=8) (actual time=94.700..94.701 rows=18264 loops=3)
+                                 Buckets: 32768  Batches: 1  Memory Usage: 970kB
+                                 Buffers: shared hit=400 read=200
+                                 ->  Seq Scan on dim_time d  (cost=0.00..382.64 rows=18264 width=8) (actual time=90.236..92.232 rows=18264 loops=3)
+                                       Buffers: shared hit=400 read=200
+ Planning:
+   Buffers: shared hit=37 read=3
+ Planning Time: 3.020 ms
+ JIT:
+   Functions: 39
+   Options: Inlining true, Optimization true, Expressions true, Deforming true
+   Timing: Generation 2.512 ms, Inlining 107.799 ms, Optimization 96.155 ms, Emission 66.423 ms, Total 272.889 ms
+ Execution Time: 16887.369 ms
+(38 rows)
+
+Time: 16890.920 ms (00:16.891)
+=== 2) AFTER aggregate: same answer from the aggregate
+                                                                             QUERY PLAN                                                                              
+---------------------------------------------------------------------------------------------------------------------------------------------------------------------
+ Finalize GroupAggregate  (cost=65230.41..65236.67 rows=24 width=36) (actual time=453.147..464.812 rows=24 loops=1)
+   Group Key: d.hour
+   Buffers: shared hit=38220 read=2290 dirtied=2409 written=1994
+   ->  Gather Merge  (cost=65230.41..65236.01 rows=48 width=36) (actual time=453.135..464.784 rows=72 loops=1)
+         Workers Planned: 2
+         Workers Launched: 2
+         Buffers: shared hit=38220 read=2290 dirtied=2409 written=1994
+         ->  Sort  (cost=64230.39..64230.45 rows=24 width=36) (actual time=437.498..437.502 rows=24 loops=3)
+               Sort Key: d.hour
+               Sort Method: quicksort  Memory: 26kB
+               Buffers: shared hit=38220 read=2290 dirtied=2409 written=1994
+               Worker 0:  Sort Method: quicksort  Memory: 26kB
+               Worker 1:  Sort Method: quicksort  Memory: 26kB
+               ->  Partial HashAggregate  (cost=64229.54..64229.84 rows=24 width=36) (actual time=437.450..437.457 rows=24 loops=3)
+                     Group Key: d.hour
+                     Batches: 1  Memory Usage: 24kB
+                     Buffers: shared hit=38206 read=2290 dirtied=2409 written=1994
+                     Worker 0:  Batches: 1  Memory Usage: 24kB
+                     Worker 1:  Batches: 1  Memory Usage: 24kB
+                     ->  Hash Join  (cost=610.94..57498.25 rows=1346257 width=12) (actual time=4.135..310.450 rows=1077011 loops=3)
+                           Hash Cond: (a.time_key = d.time_key)
+                           Buffers: shared hit=38206 read=2290 dirtied=2409 written=1994
+                           ->  Parallel Seq Scan on agg_hourly_zone a  (cost=0.00..53352.57 rows=1346257 width=12) (actual time=0.021..104.299 rows=1077011 loops=3)
+                                 Buffers: shared hit=37800 read=2090 dirtied=2409 written=1994
+                           ->  Hash  (cost=382.64..382.64 rows=18264 width=8) (actual time=4.026..4.027 rows=18264 loops=3)
+                                 Buckets: 32768  Batches: 1  Memory Usage: 970kB
+                                 Buffers: shared hit=400 read=200
+                                 ->  Seq Scan on dim_time d  (cost=0.00..382.64 rows=18264 width=8) (actual time=0.014..1.856 rows=18264 loops=3)
+                                       Buffers: shared hit=400 read=200
+ Planning:
+   Buffers: shared hit=36 read=4
+ Planning Time: 2.001 ms
+ Execution Time: 465.742 ms
+(33 rows)
+
+Time: 469.217 ms

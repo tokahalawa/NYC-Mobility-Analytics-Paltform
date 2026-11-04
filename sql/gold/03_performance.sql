@@ -7,7 +7,10 @@ ANALYZE gold.fact_trips;
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT z.borough, COUNT(*) FROM gold.fact_trips f
 JOIN gold.dim_zone z ON z.zone_key = f.pu_zone_key
-WHERE f.time_key BETWEEN 2025011500 AND 2025011523 GROUP BY 1;
+WHERE f.time_key IN (
+    SELECT time_key FROM gold.fact_trips ORDER BY time_key DESC LIMIT 24
+) 
+GROUP BY 1;
 
 CREATE INDEX ix_fact_time    ON gold.fact_trips (time_key);
 CREATE INDEX ix_fact_pu_zone ON gold.fact_trips (pu_zone_key);
@@ -17,9 +20,11 @@ ANALYZE gold.fact_trips;
 EXPLAIN (ANALYZE, BUFFERS)
 SELECT z.borough, COUNT(*) FROM gold.fact_trips f
 JOIN gold.dim_zone z ON z.zone_key = f.pu_zone_key
-WHERE f.time_key BETWEEN 2025011500 AND 2025011523 GROUP BY 1;
+WHERE f.time_key IN (
+    SELECT time_key FROM gold.fact_trips ORDER BY time_key DESC LIMIT 24
+) 
+GROUP BY 1;
 
--- pre-aggregated table (rebuilt from the fact, so it is always rerun-safe)
 CREATE TABLE IF NOT EXISTS gold.agg_hourly_zone (
   time_key INT, pu_zone_key INT, company_key INT,
   trips BIGINT, total_miles NUMERIC, total_seconds BIGINT, total_fare NUMERIC,

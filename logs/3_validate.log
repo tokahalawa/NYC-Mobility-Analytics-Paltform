@@ -1,0 +1,29 @@
+=== rows per layer
+       layer       |  count   
+-------------------+----------
+ silver_quarantine |        0
+ gold_fact         | 19183488
+ silver_clean      | 19183488
+(3 rows)
+
+=== orphan checks (all must be 0)
+ orphan_time | orphan_pu_zone | orphan_do_zone | orphan_company 
+-------------+----------------+----------------+----------------
+           0 |              0 |              0 |              0
+(1 row)
+
+=== smoke test: top 10 pickup zones
+  borough  |         zone_name         | trips  
+-----------+---------------------------+--------
+ Queens    | LaGuardia Airport         | 431602
+ Queens    | JFK Airport               | 329506
+ Brooklyn  | Crown Heights North       | 242003
+ Manhattan | Times Sq/Theatre District | 238999
+ Manhattan | East Village              | 229986
+ Manhattan | TriBeCa/Civic Center      | 228752
+ Manhattan | West Chelsea/Hudson Yards | 221549
+ Manhattan | Midtown Center            | 221430
+ Manhattan | Union Sq                  | 211009
+ Manhattan | East Chelsea              | 210587
+(10 rows)
+
