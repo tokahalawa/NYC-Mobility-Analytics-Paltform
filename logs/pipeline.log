@@ -120,3 +120,17 @@
 [Thu 11/05/2026  0:08:36.77] 3_validate OK 
 [Thu 11/05/2026  0:15:51.81] PIPELINE OK 
 [Thu 11/05/2026  0:16:36.23] START fhvhv_tripdata_2025-10.parquet 
+[Thu 11/05/2026  0:18:54.81] 1_silver OK 
+[Thu 11/05/2026  0:23:13.46] 2_gold OK 
+[Thu 11/05/2026  0:25:19.69] 3_validate OK 
+[Thu 11/05/2026  0:33:35.69] PIPELINE OK 
+[Thu 11/05/2026  0:36:13.01] START fhvhv_tripdata_2025-11.parquet 
+[Thu 11/05/2026  0:38:30.77] 1_silver OK 
+[Thu 11/05/2026  0:43:27.18] 2_gold OK 
+[Thu 11/05/2026  0:46:38.83] 3_validate OK 
+[Thu 11/05/2026  0:55:53.06] PIPELINE OK 
+[Thu 11/05/2026  1:02:32.06] START fhvhv_tripdata_2025-12.parquet 
+[Thu 11/05/2026  1:05:02.51] 1_silver OK 
+[Thu 11/05/2026  1:10:01.25] 2_gold OK 
+[Thu 11/05/2026  1:13:27.91] 3_validate OK 
+[Thu 11/05/2026  1:23:36.14] PIPELINE OK 
