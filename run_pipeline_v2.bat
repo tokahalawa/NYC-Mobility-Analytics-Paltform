@@ -6,11 +6,11 @@ if not exist logs mkdir logs
 set FILE=%1
 if "%FILE%"=="" set FILE=fhvhv_tripdata_2025-01.parquet
 set SRC=%2
-if "%SRC%"=="" set SRC=bronze.trips_raw
+if "%SRC%"=="" set SRC=bronze.trips_dev
 
 echo [%date% %time%] START %FILE% from %SRC% >> logs\pipeline.log
 
-:: 2. Execute Pipeline Steps (Silver now uses DuckDB)
+:: 2. Execute Pipeline Steps
 call :run 1_create_gold   sql\gold\01_create_gold.sql   || exit /b 1
 call :run 2_silver_duckdb sql\silver\02_build_silver_duckdb.sql || exit /b 1
 call :run 3_load_gold     sql\gold\02_load_gold.sql      || exit /b 1
