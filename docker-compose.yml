@@ -8,25 +8,15 @@ services:
       POSTGRES_DB: nyc_dwh
     ports:
       - "5432:5432"
+    command: postgres -c synchronous_commit=off -c max_wal_size=8GB -c shared_buffers=1GB
     volumes:
-      - pgdata:/var/lib/postgresql/data 
-      - ./sql/init:/docker-entrypoint-initdb.d 
+      - pgdata:/var/lib/postgresql/data
+      - ./sql/init:/docker-entrypoint-initdb.d
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d nyc_dwh"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
 
-  airflow:
-    image: apache/airflow:2.10.5
-    container_name: nyc_airflow
-    command: standalone
-    depends_on:
-      - postgres
-    ports:
-      - "8080:8080"
-    environment:
-      AIRFLOW__CORE__LOAD_EXAMPLES: "false"
-      AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: "postgresql+psycopg2://admin:admin123@postgres:5432/nyc_dwh"
-
-    volumes:
-      - ./dags:/opt/airflow/dags
-      - ./sql:/opt/airflow/sql
-
-volumes:
+volumes: 
   pgdata:

@@ -1,0 +1,28 @@
+[Tue 11/03/2026 14:16:01.90] START fhvhv_tripdata_2025-01.parquet from bronze.trips_dev 
+[Tue 11/03/2026 14:16:01.92] 1_create_gold attempt 1 
+[Tue 11/03/2026 14:16:08.13] 1_create_gold OK 
+[Tue 11/03/2026 14:16:08.18] 2_silver attempt 1 
+[Tue 11/03/2026 14:16:09.58] 2_silver FAILED attempt 1 
+[Tue 11/03/2026 14:16:29.23] 2_silver attempt 2 
+[Tue 11/03/2026 14:16:31.05] 2_silver FAILED attempt 2 
+[Tue 11/03/2026 14:16:31.05] PIPELINE FAILED at 2_silver 
+[Tue 11/03/2026 14:19:53.02] START fhvhv_tripdata_2025-01.parquet from bronze.trips_dev 
+[Tue 11/03/2026 14:19:53.05] 1_create_gold attempt 1 
+[Tue 11/03/2026 14:19:55.11] 1_create_gold OK 
+[Tue 11/03/2026 14:19:55.14] 2_silver attempt 1 
+[Tue 11/03/2026 14:21:19.17] 2_silver OK 
+[Tue 11/03/2026 14:21:19.20] 3_load_gold attempt 1 
+[Tue 11/03/2026 14:24:51.86] 3_load_gold OK 
+[Tue 11/03/2026 14:24:51.94] 4_validate attempt 1 
+[Tue 11/03/2026 14:25:06.09] 4_validate OK 
+[Tue 11/03/2026 14:25:06.10] PIPELINE OK fhvhv_tripdata_2025-01.parquet 
+[Tue 11/03/2026 14:26:56.23] START fhvhv_tripdata_2025-01.parquet from bronze.trips_raw 
+[Tue 11/03/2026 14:26:56.24] 1_create_gold attempt 1 
+[Tue 11/03/2026 14:26:59.27] 1_create_gold OK 
+[Tue 11/03/2026 14:26:59.31] 2_silver attempt 1 
+[Tue 11/03/2026 16:52:50.81] 2_silver OK 
+[Tue 11/03/2026 16:52:54.47] 3_load_gold attempt 1 
+[Tue 11/03/2026 21:09:05.29] 3_load_gold OK 
+[Tue 11/03/2026 21:09:05.92] 4_validate attempt 1 
+[Tue 11/03/2026 21:22:48.72] 4_validate OK 
+[Tue 11/03/2026 21:22:49.03] PIPELINE OK fhvhv_tripdata_2025-01.parquet 

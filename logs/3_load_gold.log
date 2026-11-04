@@ -1,0 +1,27 @@
+Timing is on.
+DELETE 648885
+Time: 61049.899 ms (01:01.050)
+INSERT 0 20200817
+Time: 5875543.686 ms (01:37:55.544)
+ silver_rows | fact_rows 
+-------------+-----------
+    20200817 |  20200817
+(1 row)
+
+Time: 3422374.720 ms (57:02.375)
+Time: 207738.932 ms (03:27.739)
+  borough  |         zone_name         | trips  
+-----------+---------------------------+--------
+ Queens    | JFK Airport               | 366213
+ Queens    | LaGuardia Airport         | 360402
+ Brooklyn  | Crown Heights North       | 262562
+ Manhattan | East Village              | 254290
+ Manhattan | Times Sq/Theatre District | 241137
+ Manhattan | Midtown Center            | 237055
+ Manhattan | TriBeCa/Civic Center      | 228194
+ Manhattan | Union Sq                  | 220069
+ Brooklyn  | Bushwick South            | 216480
+ Brooklyn  | East New York             | 215983
+(10 rows)
+
+Time: 292079.690 ms (04:52.080)

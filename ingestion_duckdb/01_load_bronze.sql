@@ -2,7 +2,7 @@ INSTALL postgres ; ------ duckdb cant use postgres sql so it needs extension to 
 LOAD postgres ;
 ATTACH IF NOT EXISTS 'host=localhost port=5432 dbname=nyc_dwh user=admin password=admin123' AS pg (TYPE postgres); 
 ------- CREATING EMPTY TABLE WITH SAME COLUMNS AS PARQUET FILES-----
-CREATE TABLE IF NOT EXIST pg.bronze.trips_raw AS 
+CREATE TABLE IF NOT EXISTS pg.bronze.trips_raw AS 
 SELECT 
 * ,
 ''::VARCHAR AS source_file

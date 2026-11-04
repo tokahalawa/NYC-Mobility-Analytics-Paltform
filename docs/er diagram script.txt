@@ -1,22 +1,24 @@
 erDiagram
 	direction TB
-	dim_time {
-		int time_key PK ""  
-		timestamp hour_start  ""  
-		date date  ""  
-		int hour  ""  
-		int day_of_week  ""  
-		text day_name  ""  
-		int month  ""  
-		boolean is_weekend  ""  
+	dim_company {
+		int company_key PK "PK"  
+		text license_code  ""  
+		text company_name  ""  
+	}
+
+	dim_zone {
+		int zone_key PK "PK"  
+		text borough  ""  
+		text zone_name  ""  
+		text service_zone  ""  
 	}
 
 	fact_trips {
-		bigint trip_key PK ""  
-		int time_key FK ""  
-		int company_key FK ""  
-		int pu_zone_key FK ""  
-		int do_zone_key FK ""  
+		bigint trip_key PK "PK"  
+		int time_key FK "FK to dim_time"  
+		int company_key FK "FK to dim_company"  
+		int pu_zone_key FK "FK to dim_zone (Pickup)"  
+		int do_zone_key FK "FK to dim_zone (Dropoff)"  
 		timestamp request_datetime  ""  
 		timestamp pickup_datetime  ""  
 		timestamp dropoff_datetime  ""  
@@ -33,29 +35,27 @@ erDiagram
 		numeric driver_pay  ""  
 		int wait_seconds  ""  
 		numeric total_paid  ""  
-		boolean flags  ""  
+		boolean shared_request  ""  
+		boolean shared_match  ""  
+		boolean access_a_ride  ""  
+		boolean wav_request  ""  
+		boolean wav_match  ""  
 		text source_file  ""  
 	}
 
-	dim_company {
-		int company_key PK ""  
-		text license_code  ""  
-		text company_name  ""  
+	dim_time {
+		int time_key PK "PK"  
+		timestamp hour_start  ""  
+		date date  ""  
+		int hour  ""  
+		int day_of_week  ""  
+		text day_name  ""  
+		int month  ""  
+		boolean is_weekend  ""  
 	}
 
-	dim_zone {
-		int zone_key PK ""  
-		text borough  ""  
-		text zone_name  ""  
-		text service_zone  ""  
-	}
-
-	Untitled-Entity {
-
-	}
-
-	dim_time||--o{fact_trips:"pickup hour"
-	dim_company||--o{fact_trips:"company"
-	dim_zone||--o{fact_trips:"pickup zone (PU)"
-	dim_zone||--o{fact_trips:"dropoff zone (DO)"
-	dim_zone}|--|{Untitled-Entity:"  "
+	dim_time||--o{fact_trips:"Trip Time"
+	dim_company||--o{fact_trips:"Company"
+	dim_zone||--o{fact_trips:"Pickup Zone"
+	dim_zone||--o{fact_trips:"Dropoff Zone"
+	

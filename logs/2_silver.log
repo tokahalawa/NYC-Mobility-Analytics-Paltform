@@ -1,0 +1,43 @@
+Timing is on.
+Time: 221.664 ms
+NOTICE:  relation "quality_rules" already exists, skipping
+CREATE TABLE
+Time: 1.054 ms
+INSERT 0 0
+Time: 1.735 ms
+NOTICE:  relation "trips_quarantine" already exists, skipping
+CREATE TABLE AS
+Time: 1.167 ms
+NOTICE:  relation "trips_clean" already exists, skipping
+CREATE TABLE
+Time: 1.363 ms
+DROP TABLE
+Time: 0.511 ms
+NOTICE:  table "staged" does not exist, skipping
+SELECT 20405666
+Time: 2586695.907 ms (43:06.696)
+DELETE 8091
+Time: 9527.889 ms (00:09.528)
+DELETE 648885
+Time: 56109.741 ms (00:56.110)
+INSERT 0 204849
+Time: 735351.041 ms (12:15.351)
+INSERT 0 20200817
+Time: 2897881.172 ms (48:17.881)
+ source_rows | clean_rows | quarantine_rows 
+-------------+------------+-----------------
+    20405666 |   20200817 |          204849
+(1 row)
+
+Time: 776923.910 ms (12:56.924)
+Time: 360468.052 ms (06:00.468)
+ reject_rule_id |                   description                   | rows_quarantined 
+----------------+-------------------------------------------------+------------------
+ R11            | Request time is after pickup time               |           199503
+ R05            | Trip distance is empty, zero, or negative       |             2602
+ R06            | Base fare is empty or negative                  |             2427
+ R08            | Driver pay is empty or negative                 |              313
+ R03            | Dropoff is before or at the same time as pickup |                4
+(5 rows)
+
+Time: 2448.056 ms (00:02.448)
