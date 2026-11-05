@@ -1,4 +1,3 @@
-version: '3.8'
 
 services:
   postgres:
@@ -23,7 +22,7 @@ services:
       retries: 5
 
   superset:
-    image: apache/superset:latest
+    image: nyc-superset:local
     container_name: nyc_superset
     depends_on:
       postgres:
@@ -31,14 +30,23 @@ services:
     ports:
       - "8088:8088"
     environment:
-      SUPERSET_SECRET_KEY: mysecretkey123
+      SUPERSET_SECRET_KEY: "mysecretkey123"
+      SUPERSET_CONFIG_PATH: /app/pythonpath/superset_config.py
+      SQLALCHEMY_DATABASE_URI: "postgresql+psycopg2://admin:admin123@nyc_postgres:5432/superset_meta"
       SUPERSET_LOAD_EXAMPLES: "no"
+    volumes:
+      - superset_home:/app/superset_home
+      - ./superset_config.py:/app/pythonpath/superset_config.py:ro
     command: >
       /bin/bash -c "
-      /app/.venv/bin/pip install --no-cache-dir psycopg2-binary &&
-      /app/.venv/bin/superset db upgrade &&
-      /app/.venv/bin/superset fab create-admin --username admin --firstname Admin --lastname User --email admin@superset.com --password admin || true &&
-      /app/.venv/bin/superset init &&
+      superset db upgrade &&
+      (superset fab create-admin
+      --username admin
+      --firstname Admin
+      --lastname User
+      --email admin@superset.com
+      --password admin || true) &&
+      superset init &&
       /usr/bin/run-server.sh
       "
     networks:
@@ -51,3 +59,4 @@ networks:
 
 volumes:
   pgdata:
+  superset_home:

@@ -23,7 +23,7 @@ SELECT to_char(ts,'YYYYMMDDHH24')::int, ts, ts::date,
        EXTRACT(YEAR FROM ts)::int, EXTRACT(MONTH FROM ts)::int, trim(to_char(ts,'Month')), 
        EXTRACT(ISODOW FROM ts)::int, trim(to_char(ts,'Day')), 
        EXTRACT(HOUR FROM ts)::int, EXTRACT(ISODOW FROM ts) IN (6,7)
-FROM generate_series('2024-12-01'::timestamp, '2026-12-31 23:00'::timestamp, interval '1 hour') ts
+FROM generate_series('2017-01-01'::timestamp, '2030-12-31 23:00'::timestamp, interval '1 hour') ts
 ON CONFLICT (time_key) DO NOTHING;
 
 -- B) dim_company

@@ -134,3 +134,12 @@
 [Thu 11/05/2026  1:10:01.25] 2_gold OK 
 [Thu 11/05/2026  1:13:27.91] 3_validate OK 
 [Thu 11/05/2026  1:23:36.14] PIPELINE OK 
+[Thu 11/05/2026  9:43:13.09] START fhvhv_tripdata_2024-03.parquet 
+[Thu 11/05/2026  9:43:13.52] FAILED at Silver 
+[Thu 11/05/2026  9:47:02.94] START fhvhv_tripdata_2024-06.parquet 
+[Thu 11/05/2026  9:47:03.53] FAILED at Silver 
+[Thu 11/05/2026  9:58:05.50] START fhvhv_tripdata_2024-06.parquet 
+[Thu 11/05/2026 10:01:35.38] 1_silver OK 
+[Thu 11/05/2026 10:51:13.36] 2_gold OK 
+[Thu 11/05/2026 10:54:53.06] 3_validate OK 
+[Thu 11/05/2026 11:07:26.64] PIPELINE OK 

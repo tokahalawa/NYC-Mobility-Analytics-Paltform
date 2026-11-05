@@ -25,10 +25,25 @@ INSERT INTO pg.silver.quality_rules VALUES
  ('R12','pickup_datetime','Pickup is outside the file''s month','QUARANTINE')
 ON CONFLICT (rule_id) DO NOTHING;
 
--- 2) tables (created once) in PG
+-- 2a) Load source + normalize schema (Schema Evolution)
+DROP TABLE IF EXISTS raw_src;
+CREATE TEMP TABLE raw_src AS
+SELECT * FROM read_parquet('data/raw/' || getvariable('source_file'));
+
+-- log every column that this file doesn't have
+SELECT 'SCHEMA_EVOLUTION: ' || getvariable('source_file') || ' is missing column '
+       || c || ' -> defaulted to NULL (treated as 0 in Silver)' AS notice
+FROM (VALUES ('congestion_surcharge'), ('airport_fee'), ('cbd_congestion_fee')) v(c)
+WHERE c NOT IN (SELECT column_name FROM duckdb_columns() WHERE table_name = 'raw_src');
+
+ALTER TABLE raw_src ADD COLUMN IF NOT EXISTS congestion_surcharge DOUBLE;
+ALTER TABLE raw_src ADD COLUMN IF NOT EXISTS airport_fee DOUBLE;
+ALTER TABLE raw_src ADD COLUMN IF NOT EXISTS cbd_congestion_fee DOUBLE;
+
+-- 2b) tables in PG (created once)
 CREATE TABLE IF NOT EXISTS pg.silver.trips_quarantine AS
 SELECT *, ''::VARCHAR AS reject_rule_id, getvariable('source_file') AS source_file, now() AS quarantine_time
-FROM read_parquet('data/raw/' || getvariable('source_file')) WHERE false;
+FROM raw_src WHERE false;
 
 CREATE TABLE IF NOT EXISTS pg.silver.trips_clean (
   hvfhs_license_num TEXT NOT NULL, dispatching_base_num TEXT, originating_base_num TEXT,
@@ -47,7 +62,7 @@ CREATE TABLE IF NOT EXISTS pg.silver.trips_clean (
   is_outlier BOOLEAN NOT NULL, is_driver_pay_suspect BOOLEAN NOT NULL,
   source_file TEXT NOT NULL);
 
--- 3) stage: Read directly from Parquet
+-- 3) stage (Read from the normalized raw_src)
 DROP TABLE IF EXISTS staged;
 CREATE TEMP TABLE staged AS
 SELECT t.*, getvariable('source_file') AS source_file,
@@ -64,21 +79,19 @@ CASE
   WHEN hvfhs_license_num IS NULL THEN 'R09'
   WHEN request_datetime IS NULL THEN 'R10'
   WHEN request_datetime > pickup_datetime THEN 'R11'
-  -- R12 FIXED FOR DUCKDB:
-  WHEN pickup_datetime <  CAST(regexp_extract(getvariable('source_file'), '[0-9]{4}-[0-9]{2}') || '-01' AS DATE)
+    WHEN pickup_datetime <  CAST(regexp_extract(getvariable('source_file'), '[0-9]{4}-[0-9]{2}') || '-01' AS DATE)
     OR pickup_datetime >= CAST(regexp_extract(getvariable('source_file'), '[0-9]{4}-[0-9]{2}') || '-01' AS DATE) + INTERVAL '1 month'
     THEN 'R12'
 END AS reject_rule_id
-FROM read_parquet('data/raw/' || getvariable('source_file')) t;
+FROM raw_src t;
 
 -- 4) safe rerun (Delete from PG)
 DELETE FROM pg.silver.trips_quarantine WHERE source_file = getvariable('source_file');
 DELETE FROM pg.silver.trips_clean      WHERE source_file = getvariable('source_file');
 
-
--- 5) rejected rows (Insert to PG)
-INSERT INTO pg.silver.trips_quarantine
-SELECT s.*, now() FROM staged s WHERE s.reject_rule_id IS NOT NULL;
+-- 5) rejected rows (Insert to PG BY NAME)
+INSERT INTO pg.silver.trips_quarantine BY NAME
+SELECT s.*, now() AS quarantine_time FROM staged s WHERE s.reject_rule_id IS NOT NULL;
 
 -- 6) clean rows + transformations (Insert to PG)
 INSERT INTO pg.silver.trips_clean
@@ -89,7 +102,6 @@ WITH prep AS (
     upper(trim(s.dispatching_base_num)) AS dispatching_base_num,
     upper(trim(s.originating_base_num)) AS originating_base_num,
     s.request_datetime, s.on_scene_datetime, s.pickup_datetime, s.dropoff_datetime,
-    -- تعديل: قراءة المناطق مباشرة من الـ CSV عشان نتجنب مشكلة الجدول المفقود
     COALESCE(pu."LocationID",0)::INTEGER AS pu_location_id,
     COALESCE(dz."LocationID",0)::INTEGER AS do_location_id,
     s.trip_miles::NUMERIC(8,2) AS trip_miles, s.trip_time::INTEGER AS trip_seconds,
@@ -107,7 +119,6 @@ WITH prep AS (
     CASE upper(trim(s.wav_match_flag))      WHEN 'Y' THEN TRUE WHEN 'N' THEN FALSE END AS wav_match,
     s.source_file
   FROM staged s
-  
   LEFT JOIN read_csv_auto('data/raw/taxi_zone_lookup.csv') pu ON pu."LocationID" = s."PULocationID"
   LEFT JOIN read_csv_auto('data/raw/taxi_zone_lookup.csv') dz ON dz."LocationID" = s."DOLocationID"
   WHERE s.reject_rule_id IS NULL)
@@ -124,9 +135,6 @@ SELECT hvfhs_license_num, dispatching_base_num, originating_base_num,
   source_file
 FROM prep;
 
-
-
-
 -- 7) reconciliation
 SELECT
   (SELECT COUNT(*) FROM staged) AS source_rows,
@@ -138,11 +146,11 @@ SELECT CASE
        (SELECT COUNT(*) FROM pg.silver.trips_quarantine WHERE source_file = getvariable('source_file')) 
        = (SELECT COUNT(*) FROM staged) 
   THEN 'Reconciliation Passed' 
-  ELSE 1/0 
+  ELSE error('RECONCILIATION FAILED: clean + quarantine <> source rows')
 END AS reconciliation_check;
 
 -- 8) quality report
 SELECT q.reject_rule_id, r.description, COUNT(*) AS rows_quarantined
 FROM pg.silver.trips_quarantine q JOIN pg.silver.quality_rules r ON r.rule_id = q.reject_rule_id
 WHERE q.source_file = getvariable('source_file')
-GROUP BY 1,2 ORDER BY 3 DESC; 
+GROUP BY 1,2 ORDER BY 3 DESC;
