@@ -34,7 +34,7 @@ An end-to-end Data Engineering pipeline that ingests, cleans, and analyzes NYC H
 ## 📂 Repository Structure
 - `/sql`: Contains all DDL, DML, and validation scripts.
 - `/ingestion_duckdb`: Scripts for DuckDB processing.
-- `run_pipeline.bat`: The main orchestrator.
+- `run_pipeline_v2.bat`: The main orchestrator.
 - `/logs`: Execution logs and data quality reports.
 
 ## 📑 Documentation & Presentation
