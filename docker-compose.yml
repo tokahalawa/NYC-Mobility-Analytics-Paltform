@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   postgres:
     image: postgres:16
@@ -12,25 +14,40 @@ services:
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./sql/init:/docker-entrypoint-initdb.d
+    networks:
+      - nyc-net
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U admin -d nyc_dwh"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
 
   superset:
     image: apache/superset:latest
     container_name: nyc_superset
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     ports:
       - "8088:8088"
-    extra_hosts:
-      - "host.docker.internal:host-gateway"
     environment:
-      - SUPERSET_SECRET_KEY=mysecretkey123
+      SUPERSET_SECRET_KEY: mysecretkey123
+      SUPERSET_LOAD_EXAMPLES: "no"
     command: >
-      /bin/sh -c "
+      /bin/bash -c "
+      pip install --no-cache-dir psycopg2-binary &&
       superset db upgrade &&
-      superset fab create-admin --username admin --firstname Superset --lastname Admin --email admin@superset.com --password admin &&
+      superset fab create-admin --username admin --firstname Admin --lastname User --email admin@superset.com --password admin || true &&
       superset init &&
       /usr/bin/run-server.sh
       "
+    networks:
+      - nyc-net
+    restart: unless-stopped
+
+networks:
+  nyc-net:
+    driver: bridge
 
 volumes:
   pgdata:
