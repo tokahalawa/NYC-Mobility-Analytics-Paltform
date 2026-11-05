@@ -6,7 +6,7 @@ An end-to-end Data Engineering pipeline that ingests, cleans, and analyzes NYC H
 - **Bronze (Data Lake):** Raw `.parquet` files.
 - **Silver (Compute):** **DuckDB** reads Parquet directly, applies 12 Data Quality rules, and separates clean vs. quarantined data in-memory.
 - **Gold (Warehouse):** **PostgreSQL** stores the final Star Schema (`fact_trips`, `dim_time`, `dim_zone`, `dim_company`).
-- **Orchestration:** Custom Batch Script (`run_pipeline.bat`) handling dependencies, retries, and logging.
+- **Orchestration:** Custom Batch Script (`run_pipeline_v2.bat`) handling dependencies, retries, and logging.
 
 ## 🛠️ Tech Stack
 - **Docker & Docker Compose** (Environment)
