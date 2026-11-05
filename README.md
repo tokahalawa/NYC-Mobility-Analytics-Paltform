@@ -19,7 +19,7 @@ An end-to-end Data Engineering pipeline that ingests, cleans, and analyzes NYC H
 1. **Start the environment:**
    `docker compose up -d`
 2. **Run the pipeline for a specific month:**
-   `run_pipeline.bat fhvhv_tripdata_2025-01.parquet`
+   `run_pipeline_v2.bat fhvhv_tripdata_2025-01.parquet`
 3. **Run the pipeline for the whole year (Loop):**
    `run_whole_2025.bat`
 4. **Access Superset:**
